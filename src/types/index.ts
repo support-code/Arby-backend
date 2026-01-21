@@ -1,0 +1,404 @@
+export enum UserRole {
+  ADMIN = 'admin',
+  ARBITRATOR = 'arbitrator',
+  LAWYER = 'lawyer',
+  PARTY = 'party'
+}
+
+export enum CaseStatus {
+  DRAFT = 'draft',
+  ACTIVE = 'active',
+  PENDING_DECISION = 'pending_decision',
+  CLOSED = 'closed',
+  ARCHIVED = 'archived'
+}
+
+export enum DocumentPermission {
+  ARBITRATOR_ONLY = 'arbitrator_only',
+  ALL_PARTIES = 'all_parties',
+  SPECIFIC_PARTY = 'specific_party',
+  LAWYERS_ONLY = 'lawyers_only'
+}
+
+export interface IUser {
+  _id?: string;
+  email: string;
+  password: string;
+  name: string;
+  role: UserRole;
+  status: 'active' | 'inactive' | 'pending';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ICase {
+  _id?: string;
+  title: string;
+  description?: string;
+  arbitratorId: string;
+  lawyers: string[]; // User IDs
+  parties: string[]; // User IDs
+  status: CaseStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  closedAt?: Date;
+  // Extended fields
+  caseNumber?: string; // Official case number
+  caseType?: string; // Type of case
+  claimAmount?: number; // Claim amount
+  confidentialityLevel?: ConfidentialityLevel; // Confidentiality level
+}
+
+export interface IDocument {
+  _id?: string;
+  caseId: string;
+  fileName: string;
+  originalName: string;
+  filePath: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedBy: string; // User ID
+  permission: DocumentPermission;
+  visibleTo?: string[]; // User IDs (if specific permission)
+  version: number;
+  createdAt: Date;
+  updatedAt: Date;
+  // Extended fields
+  documentType?: DocumentType; // Type of document
+  belongsToProcedure?: string; // Belongs to specific procedure
+  isLocked?: boolean; // Locked for editing
+  isSecret?: boolean; // Secret document
+  parentDocumentId?: string; // For linked documents
+}
+
+export interface IInvitation {
+  _id?: string;
+  email: string;
+  role: UserRole;
+  caseId?: string; // Optional - for case-specific invitations
+  invitedBy: string; // User ID
+  token: string;
+  status: 'pending' | 'accepted' | 'expired';
+  expiresAt: Date;
+  createdAt: Date;
+}
+
+export interface IAuditLog {
+  _id?: string;
+  userId: string;
+  action: string;
+  resource: string; // 'case', 'document', 'user', etc.
+  resourceId?: string;
+  details?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: Date;
+}
+
+export interface JWTPayload {
+  userId: string;
+  email: string;
+  role: UserRole;
+}
+
+// New interfaces for advanced case management
+
+export enum DecisionStatus {
+  DRAFT = 'draft',
+  SENT_FOR_SIGNATURE = 'sent_for_signature',
+  SIGNED = 'signed'
+  // Legal lifecycle: DRAFT → SENT_FOR_SIGNATURE → SIGNED (not editable after SIGNED)
+}
+
+export enum DecisionType {
+  NOTE_DECISION = 'note_decision', // החלטה בפיתקית - על גבי בקשה
+  FINAL_DECISION = 'final_decision', // החלטה סופית - סוגרת דיון
+  DISCUSSION_DECISION = 'discussion_decision' // החלטה דיונית - נוצרת דרך דיונים
+}
+
+export interface IDecision {
+  _id?: string;
+  caseId: string;
+  type: DecisionType;
+  title: string;
+  summary?: string;
+  content?: string;
+  documentId?: string; // Link to document
+  requestId?: string; // For NOTE_DECISION - link to request
+  discussionSessionId?: string; // For DISCUSSION_DECISION and FINAL_DECISION (Legal Requirement #13: Not time-bound)
+  closesDiscussion?: boolean; // For FINAL_DECISION - indicates if this closes the discussion
+  publishedAt?: Date;
+  status: DecisionStatus;
+  // Legal Requirement #12: Deletion is controlled system action (soft delete)
+  isDeleted?: boolean;
+  deletedAt?: Date;
+  deletedBy?: string;
+  // Legal Requirement #14: Signed decision can only be revoked by "revoking decision"
+  revokingDecisionId?: string; // Decision that revoked this one
+  revokedByDecisionId?: string; // Decision that was revoked by this one
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export enum RequestType {
+  INSTRUCTION = 'instruction',
+  TEMPORARY_RELIEF = 'temporary_relief',
+  AFTER_CLOSURE = 'after_closure',
+  OTHER = 'other'
+}
+
+export enum RequestStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  UNDER_REVIEW = 'under_review'
+}
+
+export interface IRequest {
+  _id?: string;
+  caseId: string;
+  type: RequestType;
+  title: string;
+  content: string;
+  status: RequestStatus;
+  submittedBy: string;
+  respondedBy?: string;
+  responseDate?: Date;
+  response?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IComment {
+  _id?: string;
+  caseId: string;
+  documentId?: string; // Optional - for document-specific comments
+  content: string;
+  createdBy: string;
+  isInternal: boolean; // For arbitrator only
+  parentId?: string; // For nested comments
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export enum TaskStatus {
+  PENDING = 'pending',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled'
+}
+
+export enum TaskPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  URGENT = 'urgent'
+}
+
+export interface ITask {
+  _id?: string;
+  caseId: string;
+  title: string;
+  description?: string;
+  assignedTo: string;
+  dueDate?: Date;
+  status: TaskStatus;
+  priority: TaskPriority;
+  createdBy: string;
+  completedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export enum HearingType {
+  PRELIMINARY = 'preliminary',
+  MAIN = 'main',
+  CLOSING = 'closing',
+  OTHER = 'other'
+}
+
+export enum HearingStatus {
+  CREATED = 'created',
+  ACTIVE = 'active',
+  ENDED = 'ended',
+  SIGNED = 'signed'
+  // Legal state machine: CREATED → ACTIVE → ENDED → SIGNED (one-way, no rollback)
+}
+
+export interface IHearing {
+  _id?: string;
+  caseId: string;
+  scheduledDate: Date;
+  duration?: number; // in minutes
+  location?: string;
+  type: HearingType;
+  participants: string[]; // User IDs
+  notes?: string;
+  status: HearingStatus;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export enum AttendeeType {
+  WITNESS = 'witness', // עד
+  EXPERT = 'expert', // מומחה
+  COURT_CLERK = 'court_clerk', // יכל
+  SECRETARY = 'secretary', // מנני
+  OTHER = 'other' // אחר
+}
+
+export interface IAttendee {
+  type: AttendeeType;
+  name: string;
+  userId?: string; // Optional user ID if it's a system user
+}
+
+export interface IDiscussionSession {
+  _id?: string;
+  hearingId: string;
+  caseId: string;
+  title: string;
+  startedAt: Date;
+  endedAt?: Date;
+  signedAt?: Date; // Timestamp when protocol was signed (immutable after this)
+  attendees: IAttendee[]; // Array of attendee objects with type and name
+  protocol?: string; // HTML content of the protocol (read-only after ENDED/SIGNED)
+  protocolSnapshot?: string; // Final immutable snapshot when hearing ended
+  decisions?: string[]; // Decision IDs (separate from protocol)
+  status: 'active' | 'completed' | 'cancelled' | 'signed'; // Maps to hearing status
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IProtocol {
+  _id?: string;
+  discussionSessionId: string;
+  caseId: string;
+  content: string; // HTML content (append-only, immutable after creation)
+  version: number; // Incremental version number (never decreases)
+  isSigned: boolean; // Whether this version was signed (immutable)
+  signedAt?: Date; // Timestamp when signed
+  signedBy?: string; // User ID who signed
+  isCurrentVersion?: boolean; // Legal Requirement #10: Only one current version exists at any time
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date; // Should match createdAt (immutable after creation)
+}
+
+export enum AppealType {
+  APPEAL = 'appeal',
+  OBJECTION = 'objection',
+  REQUEST_REVIEW = 'request_review'
+}
+
+export enum AppealStatus {
+  PENDING = 'pending',
+  UNDER_REVIEW = 'under_review',
+  APPROVED = 'approved',
+  REJECTED = 'rejected'
+}
+
+export interface IAppeal {
+  _id?: string;
+  caseId: string;
+  decisionId?: string; // Link to decision if applicable
+  type: AppealType;
+  content: string;
+  submittedBy: string;
+  status: AppealStatus;
+  responseDate?: Date;
+  response?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IInternalNote {
+  _id?: string;
+  caseId: string;
+  content: string;
+  createdBy: string;
+  tags?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IDocumentVersion {
+  _id?: string;
+  documentId: string;
+  version: number;
+  filePath: string;
+  changes?: string; // Description of changes
+  createdBy: string;
+  createdAt: Date;
+}
+
+export enum RelationType {
+  RELATED = 'related',
+  APPEAL = 'appeal',
+  MERGER = 'merger',
+  SPLIT = 'split'
+}
+
+export interface IRelatedCase {
+  _id?: string;
+  caseId: string;
+  relatedCaseId: string;
+  relationType: RelationType;
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface IReminder {
+  _id?: string;
+  caseId: string;
+  title: string;
+  dueDate: Date;
+  assignedTo: string;
+  isCompleted: boolean;
+  completedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export enum DocumentType {
+  PLEADING = 'pleading',
+  DECISION = 'decision',
+  ATTACHMENT = 'attachment',
+  PROTOCOL = 'protocol',
+  EXPERT_OPINION = 'expert_opinion',
+  AFFIDAVIT = 'affidavit',
+  OTHER = 'other'
+}
+
+export enum ConfidentialityLevel {
+  PUBLIC = 'public',
+  CONFIDENTIAL = 'confidential',
+  SECRET = 'secret',
+  TOP_SECRET = 'top_secret'
+}
+
+export enum ExpenseCategory {
+  ARBITRATOR_FEE = 'arbitrator_fee',
+  ADMINISTRATIVE = 'administrative',
+  EXPERT_FEE = 'expert_fee',
+  LEGAL_FEE = 'legal_fee',
+  TRAVEL = 'travel',
+  DOCUMENTATION = 'documentation',
+  OTHER = 'other'
+}
+
+export interface IExpense {
+  _id?: string;
+  caseId: string;
+  description: string;
+  amount: number;
+  category: ExpenseCategory;
+  date: Date;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
