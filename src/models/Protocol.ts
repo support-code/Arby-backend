@@ -1,7 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IProtocol } from '../types';
 
-export interface IProtocolDocument extends IProtocol, Document {}
+export interface IProtocolDocument extends Omit<IProtocol, '_id' | 'discussionSessionId' | 'caseId' | 'signedBy' | 'createdBy'>, Document {
+  discussionSessionId: mongoose.Types.ObjectId;
+  caseId: mongoose.Types.ObjectId;
+  signedBy?: mongoose.Types.ObjectId;
+  createdBy: mongoose.Types.ObjectId;
+}
 
 const ProtocolSchema = new Schema<IProtocolDocument>(
   {
@@ -65,15 +70,16 @@ ProtocolSchema.index({ isSigned: 1, signedAt: -1 });
 
 // Legal Validation: Protocol versions are append-only and immutable after creation
 ProtocolSchema.pre('save', function(next) {
+  const doc = this as unknown as IProtocolDocument;
   // Legal Principle #7: Versioning is append-only, original versions remain audit-visible
-  if (!this.isNew && this.isModified('content')) {
+  if (!doc.isNew && doc.isModified('content')) {
     // Content cannot be modified after creation - only new versions allowed
     return next(new Error('פרוטוקול אינו ניתן לעריכה לאחר יצירה. יש ליצור גרסה חדשה.'));
   }
 
   // Ensure updatedAt matches createdAt for immutable records
-  if (this.isNew) {
-    this.updatedAt = this.createdAt || new Date();
+  if (doc.isNew) {
+    doc.updatedAt = doc.createdAt || new Date();
   }
 
   next();

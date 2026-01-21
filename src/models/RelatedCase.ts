@@ -1,7 +1,10 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IRelatedCase, RelationType } from '../types';
 
-export interface IRelatedCaseDocument extends IRelatedCase, Document {}
+export interface IRelatedCaseDocument extends Omit<IRelatedCase, '_id' | 'caseId' | 'relatedCaseId'>, Document {
+  caseId: mongoose.Types.ObjectId;
+  relatedCaseId: mongoose.Types.ObjectId;
+}
 
 const RelatedCaseSchema = new Schema<IRelatedCaseDocument>(
   {

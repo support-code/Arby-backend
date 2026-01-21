@@ -242,8 +242,8 @@ export async function canEditProtocol(
   }
 
   // After ENDED or SIGNED, protocol is immutable
-  if (session.status === DiscussionSessionStatus.ENDED || 
-      session.status === DiscussionSessionStatus.SIGNED) {
+  if (session.status === 'ended' || 
+      session.status === 'signed') {
     return {
       allowed: false,
       error: ProtocolWriteError.PROTOCOL_LOCKED,

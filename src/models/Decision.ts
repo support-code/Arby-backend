@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IDecision, DecisionStatus, DecisionType } from '../types';
 
-export interface IDecisionDocument extends IDecision, Document {}
+export interface IDecisionDocument extends Omit<IDecision, '_id'>, Document {}
 
 const DecisionSchema = new Schema<IDecisionDocument>(
   {
@@ -10,7 +10,7 @@ const DecisionSchema = new Schema<IDecisionDocument>(
       ref: 'Case',
       required: true,
       index: true
-    },
+    } as any,
     type: {
       type: String,
       enum: Object.values(DecisionType),
@@ -89,7 +89,7 @@ const DecisionSchema = new Schema<IDecisionDocument>(
       ref: 'User',
       required: true,
       index: true
-    }
+    } as any
   },
   {
     timestamps: true
@@ -104,13 +104,14 @@ DecisionSchema.index({ isDeleted: 1, caseId: 1 });
 
 // Legal Requirement #14: Signed decision cannot be edited, only revoked
 DecisionSchema.pre('save', function(next) {
+  const doc = this as IDecisionDocument;
   // If decision is signed, prevent content changes
-  if (this.status === DecisionStatus.SIGNED && this.isModified('content') && !this.isNew) {
+  if (doc.status === DecisionStatus.SIGNED && doc.isModified('content') && !doc.isNew) {
     return next(new Error('החלטה חתומה אינה ניתנת לעריכה. לביטול יש ליצור "החלטה מבטלת".'));
   }
   
   // If decision is signed, prevent title changes
-  if (this.status === DecisionStatus.SIGNED && this.isModified('title') && !this.isNew) {
+  if (doc.status === DecisionStatus.SIGNED && doc.isModified('title') && !doc.isNew) {
     return next(new Error('החלטה חתומה אינה ניתנת לעריכה. לביטול יש ליצור "החלטה מבטלת".'));
   }
   

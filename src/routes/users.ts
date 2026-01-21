@@ -156,7 +156,7 @@ router.post(
       }
 
       const { users } = req.body;
-      const createdUsers = [];
+      const createdUsers: Array<{ id: any; email: string; name: string; role: string }> = [];
       const passwords: Array<{ email: string; password: string }> = [];
 
       for (const userData of users) {

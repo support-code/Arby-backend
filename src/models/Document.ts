@@ -1,7 +1,12 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document as MongooseDocument } from 'mongoose';
 import { IDocument, DocumentPermission, DocumentType } from '../types';
 
-export interface IDocumentDocument extends IDocument, Document {}
+export interface IDocumentDocument extends Omit<IDocument, '_id' | 'caseId' | 'uploadedBy' | 'visibleTo' | 'parentDocumentId'>, MongooseDocument {
+  caseId: mongoose.Types.ObjectId;
+  uploadedBy: mongoose.Types.ObjectId;
+  visibleTo?: mongoose.Types.ObjectId[];
+  parentDocumentId?: mongoose.Types.ObjectId;
+}
 
 const DocumentSchema = new Schema<IDocumentDocument>(
   {

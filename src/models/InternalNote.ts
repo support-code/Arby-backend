@@ -1,7 +1,10 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IInternalNote } from '../types';
 
-export interface IInternalNoteDocument extends IInternalNote, Document {}
+export interface IInternalNoteDocument extends Omit<IInternalNote, '_id' | 'caseId' | 'createdBy'>, Document {
+  caseId: mongoose.Types.ObjectId;
+  createdBy: mongoose.Types.ObjectId;
+}
 
 const InternalNoteSchema = new Schema<IInternalNoteDocument>(
   {

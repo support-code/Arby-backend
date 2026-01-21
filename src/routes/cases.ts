@@ -43,7 +43,7 @@ router.post(
 
       let lawyerIds: string[] = lawyers || [];
       let partyIds: string[] = parties || [];
-      const createdPasswords: Array<{ email: string; password: string; role: string }> = [];
+      const createdPasswords: Array<{ email: string; name: string; password: string; role: string }> = [];
 
       // Create users from emails if provided
       if (lawyerEmails && lawyerEmails.length > 0) {
@@ -66,7 +66,7 @@ router.post(
               status: 'active'
             });
 
-            createdPasswords.push({ email: user.email, password, role: 'lawyer' });
+            createdPasswords.push({ email: user.email, name: user.name, password, role: 'lawyer' });
 
             await logAction(
               req.user!.userId,
@@ -104,7 +104,7 @@ router.post(
               status: 'active'
             });
 
-            createdPasswords.push({ email: user.email, password, role: 'party' });
+            createdPasswords.push({ email: user.email, name: user.name, password, role: 'party' });
 
             await logAction(
               req.user!.userId,

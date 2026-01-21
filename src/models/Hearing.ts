@@ -1,7 +1,13 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IHearing, HearingType, HearingStatus } from '../types';
 
-export interface IHearingDocument extends IHearing, Document {}
+export interface IHearingDocument extends Omit<IHearing, '_id' | 'caseId' | 'createdBy' | 'participants'>, Document {
+  caseId: mongoose.Types.ObjectId;
+  createdBy: mongoose.Types.ObjectId;
+  participants: mongoose.Types.ObjectId[];
+  signedAt?: Date;
+  signedBy?: mongoose.Types.ObjectId;
+}
 
 const HearingSchema = new Schema<IHearingDocument>(
   {

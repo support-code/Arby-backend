@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IAppeal, AppealType, AppealStatus } from '../types';
 
-export interface IAppealDocument extends IAppeal, Document {}
+export interface IAppealDocument extends Omit<IAppeal, '_id'>, Document {}
 
 const AppealSchema = new Schema<IAppealDocument>(
   {
@@ -10,12 +10,12 @@ const AppealSchema = new Schema<IAppealDocument>(
       ref: 'Case',
       required: true,
       index: true
-    },
+    } as any,
     decisionId: {
       type: Schema.Types.ObjectId,
       ref: 'Decision',
       index: true
-    },
+    } as any,
     type: {
       type: String,
       enum: Object.values(AppealType),
@@ -31,7 +31,7 @@ const AppealSchema = new Schema<IAppealDocument>(
       ref: 'User',
       required: true,
       index: true
-    },
+    } as any,
     status: {
       type: String,
       enum: Object.values(AppealStatus),

@@ -1,7 +1,11 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IRequest, RequestType, RequestStatus } from '../types';
 
-export interface IRequestDocument extends IRequest, Document {}
+export interface IRequestDocument extends Omit<IRequest, '_id' | 'caseId' | 'submittedBy' | 'respondedBy'>, Document {
+  caseId: mongoose.Types.ObjectId;
+  submittedBy: mongoose.Types.ObjectId;
+  respondedBy?: mongoose.Types.ObjectId;
+}
 
 const RequestSchema = new Schema<IRequestDocument>(
   {

@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { ICase, CaseStatus, ConfidentialityLevel } from '../types';
 
-export interface ICaseDocument extends ICase, Document {}
+export interface ICaseDocument extends Omit<ICase, '_id'>, Document {}
 
 const CaseSchema = new Schema<ICaseDocument>(
   {
@@ -19,7 +19,7 @@ const CaseSchema = new Schema<ICaseDocument>(
       ref: 'User',
       required: true,
       index: true
-    },
+    } as any,
     lawyers: [{
       type: Schema.Types.ObjectId,
       ref: 'User'

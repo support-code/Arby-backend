@@ -1,7 +1,10 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IDocumentVersion } from '../types';
 
-export interface IDocumentVersionDocument extends IDocumentVersion, Document {}
+export interface IDocumentVersionDocument extends Omit<IDocumentVersion, '_id' | 'documentId' | 'createdBy'>, Document {
+  documentId: mongoose.Types.ObjectId;
+  createdBy: mongoose.Types.ObjectId;
+}
 
 const DocumentVersionSchema = new Schema<IDocumentVersionDocument>(
   {

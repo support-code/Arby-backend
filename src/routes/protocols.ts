@@ -175,7 +175,8 @@ router.post(
 
       // Legal Requirement #1: Protocol may ONLY be opened and edited on the hearing day itself
       // Legal Principle #2 & #3: Protocol may ONLY be written during ACTIVE hearing with participants
-      const writeGuard = await canWriteProtocol(session, hearing);
+      const sessionPlain = { ...session.toObject(), _id: session._id.toString() };
+      const writeGuard = await canWriteProtocol(sessionPlain as any, hearing);
       if (!writeGuard.allowed) {
         return res.status(403).json({ 
           error: writeGuard.error,
@@ -283,7 +284,8 @@ router.post(
 
       // Legal Requirement #1: Protocol may ONLY be opened and edited on the hearing day itself
       // Legal Principle #2 & #3: Protocol may ONLY be written during ACTIVE hearing with participants
-      const writeGuard = await canWriteProtocol(session, hearing);
+      const sessionPlain = { ...session.toObject(), _id: session._id.toString() };
+      const writeGuard = await canWriteProtocol(sessionPlain as any, hearing);
       if (!writeGuard.allowed) {
         return res.status(403).json({ 
           error: writeGuard.error,

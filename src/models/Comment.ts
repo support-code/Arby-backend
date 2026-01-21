@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IComment } from '../types';
 
-export interface ICommentDocument extends IComment, Document {}
+export interface ICommentDocument extends Omit<IComment, '_id'>, Document {}
 
 const CommentSchema = new Schema<ICommentDocument>(
   {
@@ -10,7 +10,7 @@ const CommentSchema = new Schema<ICommentDocument>(
       ref: 'Case',
       required: true,
       index: true
-    },
+    } as any,
     documentId: {
       type: Schema.Types.ObjectId,
       ref: 'Document',
@@ -26,7 +26,7 @@ const CommentSchema = new Schema<ICommentDocument>(
       ref: 'User',
       required: true,
       index: true
-    },
+    } as any,
     isInternal: {
       type: Boolean,
       default: false,

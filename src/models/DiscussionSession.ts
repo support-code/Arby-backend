@@ -1,7 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IDiscussionSession } from '../types';
 
-export interface IDiscussionSessionDocument extends IDiscussionSession, Document {}
+export interface IDiscussionSessionDocument extends Omit<IDiscussionSession, '_id' | 'hearingId' | 'caseId' | 'signedBy' | 'createdBy'>, Document {
+  hearingId: mongoose.Types.ObjectId;
+  caseId: mongoose.Types.ObjectId;
+  signedBy?: mongoose.Types.ObjectId;
+  createdBy: mongoose.Types.ObjectId;
+}
 
 const DiscussionSessionSchema = new Schema<IDiscussionSessionDocument>(
   {
@@ -90,26 +95,27 @@ DiscussionSessionSchema.index({ status: 1, startedAt: -1 });
 
 // Legal Validation: Prevent protocol write when status is not ACTIVE or no participants
 DiscussionSessionSchema.pre('save', function(next) {
+  const doc = this as unknown as IDiscussionSessionDocument;
   // Legal Principle #1 & #2: Protocol may ONLY be written during ACTIVE hearing with participants
-  if (this.isModified('protocol') && this.protocol) {
-    if (this.status !== 'active') {
-      return next(new Error(`פרוטוקול ניתן לעריכה רק במהלך דיון פעיל (ACTIVE). סטטוס נוכחי: ${this.status}`));
+  if (doc.isModified('protocol') && doc.protocol) {
+    if (doc.status !== 'active') {
+      return next(new Error(`פרוטוקול ניתן לעריכה רק במהלך דיון פעיל (ACTIVE). סטטוס נוכחי: ${doc.status}`));
     }
-    if (!this.attendees || this.attendees.length === 0) {
+    if (!doc.attendees || doc.attendees.length === 0) {
       return next(new Error('לא ניתן לכתוב פרוטוקול ללא נוכחים רשומים. יש להוסיף לפחות נוכח אחד.'));
     }
   }
 
   // Legal Principle #6: When ending, create immutable snapshot
-  if (this.isModified('status') && this.status === 'ended' && this.protocol) {
-    this.protocolSnapshot = this.protocol;
+  if (doc.isModified('status') && doc.status === 'ended' && doc.protocol) {
+    doc.protocolSnapshot = doc.protocol;
   }
 
   // Legal Principle #7: When signing, mark as immutable
-  if (this.isModified('status') && this.status === 'signed' && !this.signedAt) {
-    this.signedAt = new Date();
-    if (!this.protocolSnapshot && this.protocol) {
-      this.protocolSnapshot = this.protocol;
+  if (doc.isModified('status') && doc.status === 'signed' && !doc.signedAt) {
+    doc.signedAt = new Date();
+    if (!doc.protocolSnapshot && doc.protocol) {
+      doc.protocolSnapshot = doc.protocol;
     }
   }
 

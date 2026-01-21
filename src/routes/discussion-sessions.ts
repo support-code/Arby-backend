@@ -273,7 +273,8 @@ router.patch(
       // Legal Principle #2 & #3: Protocol may ONLY be written during ACTIVE hearing with participants
       if (req.body.protocol !== undefined) {
         const hearing = await Hearing.findById(session.hearingId);
-        const protocolGuard = await canEditProtocol(session, hearing);
+        const sessionPlain = { ...session.toObject(), _id: session._id.toString() };
+        const protocolGuard = await canEditProtocol(sessionPlain as any, hearing);
         if (!protocolGuard.allowed) {
           return res.status(403).json({
             error: protocolGuard.error,
@@ -504,7 +505,7 @@ router.post('/:id/end', async (req: AuthRequest, res: Response) => {
     }
 
     // Legal Principle #6: Stop timer, lock protocol, persist final snapshot
-    session.status = DiscussionSessionStatus.ENDED;
+    session.status = 'ended' as any;
     session.endedAt = new Date();
     if (session.protocol) {
       session.protocolSnapshot = session.protocol; // Immutable snapshot
@@ -568,7 +569,7 @@ router.post('/:id/sign', async (req: AuthRequest, res: Response) => {
     }
 
     // Legal Principle #7: Protocol becomes immutable after signing
-    session.status = DiscussionSessionStatus.SIGNED;
+    session.status = 'signed' as any;
     session.signedAt = new Date();
     session.signedBy = userId as any;
     if (session.protocol && !session.protocolSnapshot) {

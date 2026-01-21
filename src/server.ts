@@ -28,7 +28,20 @@ import protocolsRoutes from './routes/protocols';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+
+// Get PORT from environment variable (required for production)
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
+
+// Validate PORT
+if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
+  console.error('❌ Invalid PORT value. Must be a number between 1 and 65535');
+  process.exit(1);
+}
+
+// Warn if using default PORT in production
+if (process.env.NODE_ENV === 'production' && !process.env.PORT) {
+  console.warn('⚠️  WARNING: Using default PORT (5000) in production. Set PORT environment variable.');
+}
 
 // Middleware
 app.use(cors({
@@ -83,8 +96,9 @@ const startServer = async () => {
     await connectDB();
     
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🚀 Server running on port ${PORT} (from ${process.env.PORT ? 'environment variable' : 'default'})`);
       console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

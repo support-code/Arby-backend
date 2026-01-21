@@ -1,7 +1,10 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IExpense, ExpenseCategory } from '../types';
 
-export interface IExpenseDocument extends IExpense, Document {}
+export interface IExpenseDocument extends Omit<IExpense, '_id' | 'caseId' | 'createdBy'>, Document {
+  caseId: mongoose.Types.ObjectId;
+  createdBy: mongoose.Types.ObjectId;
+}
 
 const ExpenseSchema = new Schema<IExpenseDocument>(
   {

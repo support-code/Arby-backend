@@ -146,7 +146,7 @@ router.post(
         closesDiscussion: shouldCloseDiscussion,
         status: status || DecisionStatus.DRAFT,
         createdBy,
-        publishedAt: status === DecisionStatus.PUBLISHED ? new Date() : undefined
+        publishedAt: status === DecisionStatus.SIGNED ? new Date() : undefined
       });
 
       // If final decision closes discussion, update discussion session status
@@ -285,7 +285,7 @@ router.post(
       decision.revokingDecisionId = req.body.revokingDecisionId;
       await decision.save();
 
-      revokingDecision.revokedByDecisionId = decision._id;
+      revokingDecision.revokedByDecisionId = decision._id.toString();
       await revokingDecision.save();
 
       await logAction(

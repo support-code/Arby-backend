@@ -1,7 +1,11 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { ITask, TaskStatus, TaskPriority } from '../types';
 
-export interface ITaskDocument extends ITask, Document {}
+export interface ITaskDocument extends Omit<ITask, '_id' | 'caseId' | 'assignedTo' | 'createdBy'>, Document {
+  caseId: mongoose.Types.ObjectId;
+  assignedTo: mongoose.Types.ObjectId;
+  createdBy: mongoose.Types.ObjectId;
+}
 
 const TaskSchema = new Schema<ITaskDocument>(
   {

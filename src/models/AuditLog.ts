@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IAuditLog } from '../types';
 
-export interface IAuditLogDocument extends IAuditLog, Document {}
+export interface IAuditLogDocument extends Omit<IAuditLog, '_id'>, Document {}
 
 const AuditLogSchema = new Schema<IAuditLogDocument>(
   {
@@ -10,7 +10,7 @@ const AuditLogSchema = new Schema<IAuditLogDocument>(
       ref: 'User',
       required: true,
       index: true
-    },
+    } as any,
     action: {
       type: String,
       required: true,
@@ -24,7 +24,7 @@ const AuditLogSchema = new Schema<IAuditLogDocument>(
     resourceId: {
       type: Schema.Types.ObjectId,
       index: true
-    },
+    } as any,
     details: {
       type: Schema.Types.Mixed
     },

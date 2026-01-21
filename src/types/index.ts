@@ -263,11 +263,12 @@ export interface IDiscussionSession {
   startedAt: Date;
   endedAt?: Date;
   signedAt?: Date; // Timestamp when protocol was signed (immutable after this)
+  signedBy?: string; // User ID who signed
   attendees: IAttendee[]; // Array of attendee objects with type and name
   protocol?: string; // HTML content of the protocol (read-only after ENDED/SIGNED)
   protocolSnapshot?: string; // Final immutable snapshot when hearing ended
   decisions?: string[]; // Decision IDs (separate from protocol)
-  status: 'active' | 'completed' | 'cancelled' | 'signed'; // Maps to hearing status
+  status: 'created' | 'active' | 'ended' | 'signed' | 'completed' | 'cancelled'; // Maps to hearing status
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;

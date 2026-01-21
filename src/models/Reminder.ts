@@ -1,7 +1,10 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IReminder } from '../types';
 
-export interface IReminderDocument extends IReminder, Document {}
+export interface IReminderDocument extends Omit<IReminder, '_id' | 'caseId' | 'assignedTo'>, Document {
+  caseId: mongoose.Types.ObjectId;
+  assignedTo: mongoose.Types.ObjectId;
+}
 
 const ReminderSchema = new Schema<IReminderDocument>(
   {
