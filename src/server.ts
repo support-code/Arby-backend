@@ -44,9 +44,36 @@ if (process.env.NODE_ENV === 'production' && !process.env.PORT) {
 }
 
 // Middleware
+// CORS configuration - allow multiple origins for production
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:3000',
+  'https://starfish-app-37wqp.ondigitalocean.app',
+  'https://starfish-app-37wqp.ondigitalocean.app/'
+].filter(Boolean); // Remove undefined values
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      // In production, be more strict
+      if (process.env.NODE_ENV === 'production') {
+        console.warn(`⚠️  Blocked CORS request from: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      } else {
+        // In development, allow all
+        callback(null, true);
+      }
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
