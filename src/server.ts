@@ -23,6 +23,7 @@ import remindersRoutes from './routes/reminders';
 import relatedCasesRoutes from './routes/related-cases';
 import discussionSessionsRoutes from './routes/discussion-sessions';
 import protocolsRoutes from './routes/protocols';
+import annotationsRoutes from './routes/annotations';
 
 // Load environment variables
 dotenv.config();
@@ -92,6 +93,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/decisions', decisionsRoutes);
 app.use('/api/requests', requestsRoutes);
+app.use('/api/annotations', annotationsRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/tasks', tasksRoutes);
 app.use('/api/hearings', hearingsRoutes);

@@ -226,6 +226,12 @@ router.get('/:documentId/download', canAccessDocument, async (req: AuthRequest, 
       req
     );
 
+    // Set CORS headers for PDF.js worker
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Content-Type', document.mimeType || 'application/pdf');
+
     res.download(document.filePath, document.originalName);
   } catch (error) {
     console.error('Document download error:', error);

@@ -1,10 +1,11 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IRequest, RequestType, RequestStatus } from '../types';
 
-export interface IRequestDocument extends Omit<IRequest, '_id' | 'caseId' | 'submittedBy' | 'respondedBy'>, Document {
+export interface IRequestDocument extends Omit<IRequest, '_id' | 'caseId' | 'submittedBy' | 'respondedBy' | 'attachments'>, Document {
   caseId: mongoose.Types.ObjectId;
   submittedBy: mongoose.Types.ObjectId;
   respondedBy?: mongoose.Types.ObjectId;
+  attachments?: mongoose.Types.ObjectId[];
 }
 
 const RequestSchema = new Schema<IRequestDocument>(
@@ -52,7 +53,11 @@ const RequestSchema = new Schema<IRequestDocument>(
     response: {
       type: String,
       trim: true
-    }
+    },
+    attachments: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Document'
+    }]
   },
   {
     timestamps: true

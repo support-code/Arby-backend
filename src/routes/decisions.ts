@@ -3,11 +3,14 @@ import { body, validationResult } from 'express-validator';
 import { Decision } from '../models/Decision';
 import { Case } from '../models/Case';
 import { DiscussionSession } from '../models/DiscussionSession';
+import { Request } from '../models/Request';
+import { Annotation } from '../models/Annotation';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { canAccessCase } from '../middleware/permissions';
 import { checkOpenDocumentsLimit } from '../middleware/openDocumentsLimit';
 import { logAction } from '../utils/audit';
 import { UserRole, DecisionStatus, DecisionType } from '../types';
+import { generateAnnotatedPdfFromRequest } from '../services/pdfAnnotationService';
 
 const router = express.Router();
 
@@ -96,6 +99,7 @@ router.post(
     body('requestId').optional(),
     body('discussionSessionId').optional(),
     body('closesDiscussion').optional().isBoolean(),
+    body('closesCase').optional().isBoolean(),
     body('status').optional().isIn(Object.values(DecisionStatus))
   ],
   async (req: AuthRequest, res: Response) => {
@@ -115,6 +119,7 @@ router.post(
         requestId,
         discussionSessionId,
         closesDiscussion,
+        closesCase,
         status 
       } = req.body;
       const createdBy = req.user!.userId;
@@ -144,6 +149,7 @@ router.post(
           ? discussionSessionId 
           : undefined,
         closesDiscussion: shouldCloseDiscussion,
+        closesCase: closesCase || false,
         status: status || DecisionStatus.DRAFT,
         createdBy,
         publishedAt: status === DecisionStatus.SIGNED ? new Date() : undefined
@@ -156,12 +162,58 @@ router.post(
         });
       }
 
+      // If decision closes case, update case status
+      if (closesCase) {
+        await Case.findByIdAndUpdate(caseId, {
+          status: 'closed'
+        });
+      }
+
+      // If requestId is provided, check for annotations and generate annotated PDFs
+      let annotatedPdfDocumentId: string | undefined;
+      if (requestId) {
+        try {
+          const request = await Request.findById(requestId);
+          if (request && request.attachments && request.attachments.length > 0) {
+            // Check if any attachments have annotations
+            for (const attachmentId of request.attachments) {
+              const annotationCount = await Annotation.countDocuments({
+                requestId,
+                documentId: attachmentId.toString(),
+                isDeleted: { $ne: true }
+              });
+
+              if (annotationCount > 0) {
+                // Generate annotated PDF for the first document with annotations
+                const annotatedDoc = await generateAnnotatedPdfFromRequest(
+                  requestId,
+                  attachmentId.toString(),
+                  decision._id.toString()
+                );
+                annotatedPdfDocumentId = annotatedDoc._id.toString();
+                break; // Use first annotated PDF
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error generating annotated PDF:', error);
+          // Don't fail the decision creation if PDF generation fails
+        }
+      }
+
+      // Update decision with annotated PDF document ID if generated
+      if (annotatedPdfDocumentId) {
+        await Decision.findByIdAndUpdate(decision._id, {
+          annotatedPdfDocumentId
+        });
+      }
+
       await logAction(
         createdBy,
         'decision_created',
         'decision',
         decision._id.toString(),
-        { caseId, title, type },
+        { caseId, title, type, annotatedPdfGenerated: !!annotatedPdfDocumentId },
         req
       );
 
@@ -169,7 +221,8 @@ router.post(
         .populate('createdBy', 'name email')
         .populate('documentId', 'originalName')
         .populate('requestId', 'title type')
-        .populate('discussionSessionId', 'title');
+        .populate('discussionSessionId', 'title')
+        .populate('annotatedPdfDocumentId', 'originalName fileName');
 
       res.status(201).json(populated);
     } catch (error) {
@@ -217,6 +270,15 @@ router.patch(
       if (req.body.requestId !== undefined) updates.requestId = req.body.requestId;
       if (req.body.discussionSessionId !== undefined) updates.discussionSessionId = req.body.discussionSessionId;
       if (req.body.closesDiscussion !== undefined) updates.closesDiscussion = req.body.closesDiscussion;
+      if (req.body.closesCase !== undefined) {
+        updates.closesCase = req.body.closesCase;
+        // If closing case, update case status
+        if (req.body.closesCase) {
+          await Case.findByIdAndUpdate(decision.caseId, {
+            status: 'closed'
+          });
+        }
+      }
       if (req.body.status) {
         updates.status = req.body.status;
         if (req.body.status === DecisionStatus.SIGNED && !decision.publishedAt) {

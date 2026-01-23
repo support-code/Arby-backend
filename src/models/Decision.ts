@@ -1,7 +1,9 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IDecision, DecisionStatus, DecisionType } from '../types';
 
-export interface IDecisionDocument extends Omit<IDecision, '_id'>, Document {}
+export interface IDecisionDocument extends Omit<IDecision, '_id' | 'annotatedPdfDocumentId'>, Document {
+  annotatedPdfDocumentId?: mongoose.Types.ObjectId;
+}
 
 const DecisionSchema = new Schema<IDecisionDocument>(
   {
@@ -49,6 +51,11 @@ const DecisionSchema = new Schema<IDecisionDocument>(
       type: Boolean,
       default: false
     },
+    closesCase: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
     publishedAt: {
       type: Date
     },
@@ -89,7 +96,12 @@ const DecisionSchema = new Schema<IDecisionDocument>(
       ref: 'User',
       required: true,
       index: true
-    } as any
+    } as any,
+    annotatedPdfDocumentId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Document',
+      index: true
+    }
   },
   {
     timestamps: true

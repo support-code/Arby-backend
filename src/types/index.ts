@@ -127,6 +127,8 @@ export interface IDecision {
   requestId?: string; // For NOTE_DECISION - link to request
   discussionSessionId?: string; // For DISCUSSION_DECISION and FINAL_DECISION (Legal Requirement #13: Not time-bound)
   closesDiscussion?: boolean; // For FINAL_DECISION - indicates if this closes the discussion
+  closesCase?: boolean; // For FINAL_DECISION - indicates if this closes the entire case
+  annotatedPdfDocumentId?: string; // Link to annotated PDF document
   publishedAt?: Date;
   status: DecisionStatus;
   // Legal Requirement #12: Deletion is controlled system action (soft delete)
@@ -166,6 +168,7 @@ export interface IRequest {
   respondedBy?: string;
   responseDate?: Date;
   response?: string;
+  attachments?: string[]; // Document IDs for attached PDFs
   createdAt: Date;
   updatedAt: Date;
 }
@@ -372,6 +375,35 @@ export enum DocumentType {
   EXPERT_OPINION = 'expert_opinion',
   AFFIDAVIT = 'affidavit',
   OTHER = 'other'
+}
+
+export enum AnnotationType {
+  HIGHLIGHT = 'highlight',
+  TEXT = 'text',
+  ARROW = 'arrow',
+  RECTANGLE = 'rectangle',
+  CIRCLE = 'circle'
+}
+
+export interface IAnnotation {
+  _id?: string;
+  requestId: string;
+  documentId: string; // Reference to Document (PDF)
+  pageNumber: number;
+  type: AnnotationType;
+  x: number; // Relative coordinate (0-1)
+  y: number; // Relative coordinate (0-1)
+  width: number; // Relative coordinate (0-1)
+  height: number; // Relative coordinate (0-1)
+  color: string; // Hex color
+  content?: string; // For text annotations
+  textAlign?: 'right' | 'center' | 'left'; // Text alignment for text annotations
+  textBold?: boolean; // Bold text for text annotations
+  createdBy: string; // User ID (arbitrator)
+  timestamp: Date;
+  isDeleted?: boolean; // Soft delete
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export enum ConfidentialityLevel {
