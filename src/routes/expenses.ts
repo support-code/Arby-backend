@@ -48,7 +48,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     const role = req.user!.role;
     
     if (role !== UserRole.ADMIN && 
-        caseDoc.arbitratorId.toString() !== userId &&
+        (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId &&
         !caseDoc.lawyers.some(l => l.toString() === userId) &&
         !caseDoc.parties.some(p => p.toString() === userId)) {
       return res.status(403).json({ error: 'Access denied' });
@@ -89,7 +89,13 @@ router.post(
         return res.status(404).json({ error: 'Case not found' });
       }
 
-      if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== createdBy) {
+      // Check if user is arbitrator (check arbitratorIds array)
+      const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+        caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === createdBy);
+      // Legacy support
+      const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === createdBy;
+      
+      if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
         return res.status(403).json({ error: 'Only arbitrator can create expenses' });
       }
 
@@ -152,7 +158,7 @@ router.patch(
       const userId = req.user!.userId;
       const role = req.user!.role;
       
-      if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+      if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
         return res.status(403).json({ error: 'Only arbitrator can update expenses' });
       }
 
@@ -210,7 +216,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+    if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
       return res.status(403).json({ error: 'Only arbitrator can delete expenses' });
     }
 

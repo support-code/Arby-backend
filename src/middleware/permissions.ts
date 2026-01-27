@@ -31,19 +31,50 @@ export const canAccessCase = async (
       return;
     }
 
-    // Arbitrator owns the case
-    if (caseDoc.arbitratorId.toString() === userId) {
+    // Arbitrator owns the case (check arbitratorIds array)
+    if (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) {
       return next();
     }
 
-    // Lawyer assigned to case
-    if (caseDoc.lawyers.some(lawyerId => lawyerId.toString() === userId)) {
+    // Legacy support: check arbitratorId if exists
+    if ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) {
       return next();
     }
 
-    // Party in case
-    if (caseDoc.parties.some(partyId => partyId.toString() === userId)) {
+    // Lawyer assigned to case (check both legacy lawyers and caseLawyers)
+    const lawyerIds = caseDoc.lawyers || [];
+    if (lawyerIds.some((lawyerId: any) => lawyerId.toString() === userId)) {
       return next();
+    }
+
+    // Check caseLawyers if exists
+    if (caseDoc.caseLawyers && caseDoc.caseLawyers.length > 0) {
+      const { CaseLawyer } = require('../models/CaseLawyer');
+      const caseLawyers = await CaseLawyer.find({ 
+        caseId: caseDoc._id,
+        userId: userId 
+      });
+      if (caseLawyers.length > 0) {
+        return next();
+      }
+    }
+
+    // Party in case (check both legacy parties and caseParties)
+    const partyIds = caseDoc.parties || [];
+    if (partyIds.some((partyId: any) => partyId.toString() === userId)) {
+      return next();
+    }
+
+    // Check caseParties if exists
+    if (caseDoc.caseParties && caseDoc.caseParties.length > 0) {
+      const { CaseParty } = require('../models/CaseParty');
+      const caseParties = await CaseParty.find({ 
+        caseId: caseDoc._id,
+        userId: userId 
+      });
+      if (caseParties.length > 0) {
+        return next();
+      }
     }
 
     res.status(403).json({ error: 'Access denied to this case' });
@@ -86,8 +117,12 @@ export const canAccessDocument = async (
       return next();
     }
 
-    // Arbitrator always has access
-    if (caseDoc.arbitratorId.toString() === userId) {
+    // Arbitrator always has access (check arbitratorIds array)
+    if (caseDoc.arbitratorIds && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) {
+      return next();
+    }
+    // Legacy support
+    if ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) {
       return next();
     }
 

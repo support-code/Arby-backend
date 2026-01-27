@@ -24,7 +24,7 @@ router.get('/case/:caseId', authorize(UserRole.ADMIN, UserRole.ARBITRATOR), canA
       return res.status(404).json({ error: 'Case not found' });
     }
 
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+    if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -59,7 +59,7 @@ router.get('/:id', authorize(UserRole.ADMIN, UserRole.ARBITRATOR), async (req: A
     const userId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+    if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -97,7 +97,7 @@ router.post(
       }
 
       const role = req.user!.role;
-      if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+      if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
         return res.status(403).json({ error: 'Access denied' });
       }
 
@@ -157,7 +157,7 @@ router.patch(
       const userId = req.user!.userId;
       const role = req.user!.role;
       
-      if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+      if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
         return res.status(403).json({ error: 'Access denied' });
       }
 
@@ -205,7 +205,7 @@ router.delete('/:id', authorize(UserRole.ADMIN, UserRole.ARBITRATOR), async (req
     const userId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+    if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
       return res.status(403).json({ error: 'Access denied' });
     }
 

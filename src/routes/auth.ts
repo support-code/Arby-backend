@@ -89,6 +89,64 @@ router.post(
   }
 );
 
+// Public registration for arbitrators
+router.post(
+  '/register/arbitrator',
+  [
+    body('email').isEmail().normalizeEmail(),
+    body('password').isLength({ min: 8 }),
+    body('name').trim().notEmpty()
+  ],
+  async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { email, password, name } = req.body;
+
+      // Check if user already exists
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser) {
+        return res.status(400).json({ error: 'User already exists' });
+      }
+
+      // Create user with arbitrator role
+      const hashedPassword = await hashPassword(password);
+      const user = await User.create({
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        name,
+        role: UserRole.ARBITRATOR,
+        status: 'active'
+      });
+
+      // Generate token
+      const jwtToken = generateToken({
+        userId: user._id.toString(),
+        email: user.email,
+        role: user.role
+      });
+
+      await logAction(user._id.toString(), 'user_registered', 'user', user._id.toString(), {}, req);
+
+      res.status(201).json({
+        token: jwtToken,
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          role: user.role
+        }
+      });
+    } catch (error: any) {
+      console.error('Arbitrator registration error:', error);
+      res.status(500).json({ error: 'Registration failed' });
+    }
+  }
+);
+
 // Login
 router.post(
   '/login',

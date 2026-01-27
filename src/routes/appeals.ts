@@ -50,7 +50,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     const role = req.user!.role;
     
     if (role !== UserRole.ADMIN && 
-        caseDoc.arbitratorId.toString() !== userId &&
+        (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId &&
         !caseDoc.lawyers.some(l => l.toString() === userId) &&
         !caseDoc.parties.some(p => p.toString() === userId)) {
       return res.status(403).json({ error: 'Access denied' });
@@ -141,7 +141,7 @@ router.patch(
       const userId = req.user!.userId;
       const role = req.user!.role;
       
-      if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+      if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
         return res.status(403).json({ error: 'Only arbitrator can respond to appeals' });
       }
 

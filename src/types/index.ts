@@ -2,7 +2,8 @@ export enum UserRole {
   ADMIN = 'admin',
   ARBITRATOR = 'arbitrator',
   LAWYER = 'lawyer',
-  PARTY = 'party'
+  PARTY = 'party',
+  ASSISTANT = 'assistant' // עוזרת משפטית/מזכירה
 }
 
 export enum CaseStatus {
@@ -25,8 +26,101 @@ export interface IUser {
   email: string;
   password: string;
   name: string;
+  firstName?: string; // שם פרטי
+  lastName?: string; // שם משפחה
+  idNumber?: string; // ת.ז.
+  address?: string; // כתובת
+  phone?: string; // טלפון
+  profession?: string; // מקצוע (גמיש - ניתן להוסיף)
   role: UserRole;
   status: 'active' | 'inactive' | 'pending';
+  // Privacy: טלפון ומייל של בורר לא נראים לאחרים
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Party status enum
+export enum PartyStatus {
+  PLAINTIFF = 'תובע',
+  PLAINTIFF_FEMALE = 'תובעת',
+  DEFENDANT = 'נתבע',
+  DEFENDANT_FEMALE = 'נתבעת'
+}
+
+// Company model for legal entities
+export interface ICompany {
+  _id?: string;
+  companyName: string; // שם התאגיד
+  companyNumber: string; // מספר תאגיד
+  address: string; // כתובת
+  phone?: string; // טלפון
+  email?: string; // דוא"ל
+  status: PartyStatus; // תובע/תובעת/נתבע/נתבעת
+  authorizedSignatories: IAuthorizedSignatory[]; // מורשי חתימה
+  signatureDocumentReceived?: boolean; // האם התקבל מסמך מורשי חתימה
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Authorized signatory for companies
+export interface IAuthorizedSignatory {
+  firstName: string; // שם פרטי
+  lastName: string; // שם משפחה
+  idNumber: string; // ת.ז.
+  address?: string; // כתובת
+  phone?: string; // טלפון
+  email?: string; // דוא"ל
+}
+
+// Case Party - link between case and party (person or company)
+export interface ICaseParty {
+  _id?: string;
+  caseId: string;
+  // For person
+  userId?: string; // User ID if it's a person
+  // For company
+  companyId?: string; // Company ID if it's a company
+  isCompany: boolean; // האם זה חברה או אדם
+  status: PartyStatus; // תובע/תובעת/נתבע/נתבעת
+  // Person details (if not a company)
+  firstName?: string;
+  lastName?: string;
+  idNumber?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Case Lawyer - link between case and lawyer with full details
+export interface ICaseLawyer {
+  _id?: string;
+  caseId: string;
+  userId?: string; // User ID if exists
+  partyId: string; // Which party this lawyer represents (CaseParty ID)
+  firstName: string;
+  lastName: string;
+  idNumber?: string;
+  address?: string;
+  phone?: string;
+  email: string;
+  profession: string; // מקצוע (ברירת מחדל: עורך דין, אבל יכול להיות כל דבר)
+  status: string; // ב"כ תובע, ב"כ נתבע, etc.
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Task Assignment - for assigning tasks to assistants/secretaries
+export interface ITaskAssignment {
+  _id?: string;
+  caseId: string;
+  taskId?: string; // Link to Task if exists
+  assignedBy: string; // Arbitrator User ID
+  assignedTo: string; // Assistant/Secretary User ID
+  taskDescription: string; // תיאור המשימה
+  taskType?: string; // סוג המשימה (טיוטת פסק, סיכום מסמכים, וכו')
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,9 +129,11 @@ export interface ICase {
   _id?: string;
   title: string;
   description?: string;
-  arbitratorId: string;
-  lawyers: string[]; // User IDs
-  parties: string[]; // User IDs
+  arbitratorIds: string[]; // Array of arbitrator User IDs (changed from arbitratorId)
+  lawyers: string[]; // User IDs (deprecated - use caseLawyers instead)
+  parties: string[]; // User IDs (deprecated - use caseParties instead)
+  caseParties?: string[]; // CaseParty IDs
+  caseLawyers?: string[]; // CaseLawyer IDs
   status: CaseStatus;
   createdAt: Date;
   updatedAt: Date;

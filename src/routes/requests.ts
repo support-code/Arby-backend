@@ -88,8 +88,14 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    
     if (role !== UserRole.ADMIN && 
-        caseDoc.arbitratorId.toString() !== userId &&
+        !isArbitrator && !isLegacyArbitrator &&
         !caseDoc.lawyers.some(l => l.toString() === userId) &&
         !caseDoc.parties.some(p => p.toString() === userId)) {
       return res.status(403).json({ error: 'Access denied' });
@@ -120,8 +126,14 @@ router.get('/:id/attachments', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    
     if (role !== UserRole.ADMIN && 
-        caseDoc.arbitratorId.toString() !== userId &&
+        !isArbitrator && !isLegacyArbitrator &&
         !caseDoc.lawyers.some(l => l.toString() === userId) &&
         !caseDoc.parties.some(p => p.toString() === userId)) {
       return res.status(403).json({ error: 'Access denied' });
@@ -271,7 +283,13 @@ router.patch(
       const userId = req.user!.userId;
       const role = req.user!.role;
       
-      if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+      // Check if user is arbitrator (check arbitratorIds array)
+      const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+        caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+      // Legacy support
+      const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+      
+      if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
         return res.status(403).json({ error: 'Only arbitrator can respond to requests' });
       }
 
@@ -338,7 +356,13 @@ router.post(
       const userId = req.user!.userId;
       const role = req.user!.role;
       
-      if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+      // Check if user is arbitrator (check arbitratorIds array)
+      const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+        caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+      // Legacy support
+      const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+      
+      if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
         return res.status(403).json({ error: 'Only arbitrator can create decisions from requests' });
       }
 

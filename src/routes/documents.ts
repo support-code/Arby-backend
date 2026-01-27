@@ -84,10 +84,16 @@ router.post(
       const userId = req.user!.userId;
       const role = req.user!.role;
       
+      // Check if user is arbitrator (check arbitratorIds array)
+      const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+        caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+      // Legacy support
+      const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+      
       if (role !== UserRole.ADMIN && 
-          caseDoc.arbitratorId.toString() !== userId &&
-          !caseDoc.lawyers.some(l => l.toString() === userId) &&
-          !caseDoc.parties.some(p => p.toString() === userId)) {
+          !isArbitrator && !isLegacyArbitrator &&
+          !caseDoc.lawyers.some((l: any) => l.toString() === userId) &&
+          !caseDoc.parties.some((p: any) => p.toString() === userId)) {
         fs.unlinkSync(req.file.path);
         return res.status(403).json({ error: 'Access denied to this case' });
       }
@@ -163,7 +169,13 @@ router.get('/case/:caseId', canAccessCase, async (req: AuthRequest, res: Respons
       .sort({ createdAt: -1 });
 
     // Filter based on permissions and role
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    
+    if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
       documents = documents.filter(doc => {
         switch (doc.permission) {
           case DocumentPermission.ARBITRATOR_ONLY:
@@ -309,7 +321,13 @@ router.delete('/:documentId', canAccessDocument, async (req: AuthRequest, res: R
 
     const userId = req.user!.userId;
     
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    
+    if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
       return res.status(403).json({ error: 'Only arbitrator can delete documents' });
     }
 

@@ -54,10 +54,16 @@ router.get('/hearing/:hearingId', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    
     if (role !== UserRole.ADMIN && 
-        caseDoc.arbitratorId.toString() !== userId &&
-        !caseDoc.lawyers.some(l => l.toString() === userId) &&
-        !caseDoc.parties.some(p => p.toString() === userId)) {
+        !isArbitrator && !isLegacyArbitrator &&
+        !caseDoc.lawyers.some((l: any) => l.toString() === userId) &&
+        !caseDoc.parties.some((p: any) => p.toString() === userId)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -94,10 +100,16 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    
     if (role !== UserRole.ADMIN && 
-        caseDoc.arbitratorId.toString() !== userId &&
-        !caseDoc.lawyers.some(l => l.toString() === userId) &&
-        !caseDoc.parties.some(p => p.toString() === userId)) {
+        !isArbitrator && !isLegacyArbitrator &&
+        !caseDoc.lawyers.some((l: any) => l.toString() === userId) &&
+        !caseDoc.parties.some((p: any) => p.toString() === userId)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -144,15 +156,21 @@ router.post(
       const userId = req.user!.userId;
       const role = req.user!.role;
       
+      // Check if user is arbitrator (check arbitratorIds array)
+      const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+        caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+      // Legacy support
+      const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+      
       if (role !== UserRole.ADMIN && 
-          caseDoc.arbitratorId.toString() !== userId &&
-          !caseDoc.lawyers.some(l => l.toString() === userId) &&
-          !caseDoc.parties.some(p => p.toString() === userId)) {
+          !isArbitrator && !isLegacyArbitrator &&
+          !caseDoc.lawyers.some((l: any) => l.toString() === userId) &&
+          !caseDoc.parties.some((p: any) => p.toString() === userId)) {
         return res.status(403).json({ error: 'Access denied' });
       }
 
       // Only arbitrator/admin can create sessions
-      if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+      if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
         return res.status(403).json({ error: 'Only arbitrator can create discussion sessions' });
       }
 
@@ -237,7 +255,13 @@ router.patch(
       const userId = req.user!.userId;
       const role = req.user!.role;
       
-      if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+      // Check if user is arbitrator (check arbitratorIds array)
+      const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+        caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+      // Legacy support
+      const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+      
+      if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
         return res.status(403).json({ error: 'Only arbitrator can update discussion sessions' });
       }
 
@@ -340,7 +364,13 @@ router.post('/:id/attendees', [
     const currentUserId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== currentUserId) {
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === currentUserId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === currentUserId;
+    
+    if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
       return res.status(403).json({ error: 'Only arbitrator can add attendees' });
     }
 
@@ -392,7 +422,13 @@ router.delete('/:id/attendees/:index', async (req: AuthRequest, res: Response) =
     const currentUserId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== currentUserId) {
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === currentUserId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === currentUserId;
+    
+    if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
       return res.status(403).json({ error: 'Only arbitrator can remove attendees' });
     }
 
@@ -436,7 +472,13 @@ router.post('/:id/start', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    
+    if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
       return res.status(403).json({ error: 'Only arbitrator can start discussion sessions' });
     }
 
@@ -491,7 +533,13 @@ router.post('/:id/end', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    
+    if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
       return res.status(403).json({ error: 'Only arbitrator can end discussion sessions' });
     }
 
@@ -555,7 +603,13 @@ router.post('/:id/sign', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    
+    if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
       return res.status(403).json({ error: 'Only arbitrator can sign protocols' });
     }
 

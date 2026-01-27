@@ -14,12 +14,12 @@ const CaseSchema = new Schema<ICaseDocument>(
       type: String,
       trim: true
     },
-    arbitratorId: {
+    arbitratorIds: [{
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
       index: true
-    } as any,
+    }],
+    // Deprecated - use caseParties and caseLawyers instead
     lawyers: [{
       type: Schema.Types.ObjectId,
       ref: 'User'
@@ -27,6 +27,14 @@ const CaseSchema = new Schema<ICaseDocument>(
     parties: [{
       type: Schema.Types.ObjectId,
       ref: 'User'
+    }],
+    caseParties: [{
+      type: Schema.Types.ObjectId,
+      ref: 'CaseParty'
+    }],
+    caseLawyers: [{
+      type: Schema.Types.ObjectId,
+      ref: 'CaseLawyer'
     }],
     status: {
       type: String,
@@ -62,9 +70,11 @@ const CaseSchema = new Schema<ICaseDocument>(
 );
 
 // Indexes
-CaseSchema.index({ arbitratorId: 1, status: 1 });
+CaseSchema.index({ arbitratorIds: 1, status: 1 });
 CaseSchema.index({ lawyers: 1 });
 CaseSchema.index({ parties: 1 });
+CaseSchema.index({ caseParties: 1 });
+CaseSchema.index({ caseLawyers: 1 });
 
 export const Case = mongoose.model<ICaseDocument>('Case', CaseSchema);
 

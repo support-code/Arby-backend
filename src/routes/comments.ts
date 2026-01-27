@@ -24,8 +24,12 @@ router.get('/case/:caseId', canAccessCase, async (req: AuthRequest, res: Respons
       return res.status(404).json({ error: 'Case not found' });
     }
 
-    const isArbitrator = role === UserRole.ADMIN || 
-                         caseDoc.arbitratorId.toString() === userId;
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitratorArray = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    const isArbitrator = role === UserRole.ADMIN || isArbitratorArray || isLegacyArbitrator;
 
     // Filter out internal comments if user is not arbitrator
     const query: any = { caseId };
@@ -65,8 +69,12 @@ router.get('/document/:documentId', async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Case not found' });
     }
 
-    const isArbitrator = role === UserRole.ADMIN || 
-                         caseDoc.arbitratorId.toString() === userId;
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitratorArray = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    const isArbitrator = role === UserRole.ADMIN || isArbitratorArray || isLegacyArbitrator;
 
     const query: any = { documentId };
     if (!isArbitrator) {
@@ -114,7 +122,7 @@ router.post(
 
       // Only arbitrator/admin can create internal comments
       const internal = isInternal === true && 
-                       (role === UserRole.ADMIN || caseDoc.arbitratorId.toString() === userId);
+                       (role === UserRole.ADMIN || (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) === userId);
 
       const comment = await Comment.create({
         caseId,
@@ -166,7 +174,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 
     const canDelete = comment.createdBy.toString() === userId ||
                       role === UserRole.ADMIN ||
-                      caseDoc.arbitratorId.toString() === userId;
+                      (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) === userId;
 
     if (!canDelete) {
       return res.status(403).json({ error: 'Access denied' });

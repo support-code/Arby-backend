@@ -25,7 +25,7 @@ router.get('/case/:caseId', canAccessCase, async (req: AuthRequest, res: Respons
     }
 
     const isArbitrator = role === UserRole.ADMIN || 
-                         caseDoc.arbitratorId.toString() === userId;
+                         (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) === userId;
 
     // Users see tasks assigned to them, arbitrator sees all
     const query: any = { caseId };
@@ -67,7 +67,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     }
 
     const isArbitrator = role === UserRole.ADMIN || 
-                         caseDoc.arbitratorId.toString() === userId;
+                         (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) === userId;
     const isAssigned = task.assignedTo.toString() === userId;
 
     if (!isArbitrator && !isAssigned) {
@@ -168,7 +168,7 @@ router.patch(
       }
 
       const isArbitrator = role === UserRole.ADMIN || 
-                           caseDoc.arbitratorId.toString() === userId;
+                           (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) === userId;
       const isAssigned = task.assignedTo.toString() === userId;
 
       // Only assigned user or arbitrator can update

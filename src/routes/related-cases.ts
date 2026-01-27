@@ -53,7 +53,7 @@ router.post(
         return res.status(404).json({ error: 'Case not found' });
       }
 
-      if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+      if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
         return res.status(403).json({ error: 'Only arbitrator can link cases' });
       }
 
@@ -113,7 +113,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+    if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
       return res.status(403).json({ error: 'Only arbitrator can delete case links' });
     }
 

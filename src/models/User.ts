@@ -22,6 +22,30 @@ const UserSchema = new Schema<IUserDocument>(
       required: true,
       trim: true
     },
+    firstName: {
+      type: String,
+      trim: true
+    },
+    lastName: {
+      type: String,
+      trim: true
+    },
+    idNumber: {
+      type: String,
+      trim: true
+    },
+    address: {
+      type: String,
+      trim: true
+    },
+    phone: {
+      type: String,
+      trim: true
+    },
+    profession: {
+      type: String,
+      trim: true
+    },
     role: {
       type: String,
       enum: Object.values(UserRole),

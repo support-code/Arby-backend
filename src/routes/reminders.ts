@@ -24,8 +24,12 @@ router.get('/case/:caseId', canAccessCase, async (req: AuthRequest, res: Respons
       return res.status(404).json({ error: 'Case not found' });
     }
 
-    const isArbitrator = role === UserRole.ADMIN || 
-                         caseDoc.arbitratorId.toString() === userId;
+    // Check if user is arbitrator (check arbitratorIds array)
+    const isArbitratorArray = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    // Legacy support
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    const isArbitrator = role === UserRole.ADMIN || isArbitratorArray || isLegacyArbitrator;
 
     // Users see reminders assigned to them, arbitrator sees all
     const query: any = { caseId };
@@ -66,7 +70,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     const role = req.user!.role;
     
     if (role !== UserRole.ADMIN && 
-        caseDoc.arbitratorId.toString() !== userId &&
+        (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId &&
         reminder.assignedTo.toString() !== userId) {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -105,7 +109,13 @@ router.post(
         return res.status(404).json({ error: 'Case not found' });
       }
 
-      if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== createdBy) {
+      // Check if user is arbitrator (check arbitratorIds array)
+      const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+        caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === createdBy);
+      // Legacy support
+      const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === createdBy;
+      
+      if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
         return res.status(403).json({ error: 'Only arbitrator can create reminders' });
       }
 
@@ -167,7 +177,7 @@ router.patch(
       const role = req.user!.role;
       
       const isArbitrator = role === UserRole.ADMIN || 
-                           caseDoc.arbitratorId.toString() === userId;
+                           (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) === userId;
       const isAssigned = reminder.assignedTo.toString() === userId;
 
       if (!isArbitrator && !isAssigned) {
@@ -230,7 +240,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && caseDoc.arbitratorId.toString() !== userId) {
+    if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
       return res.status(403).json({ error: 'Only arbitrator can delete reminders' });
     }
 
