@@ -2,42 +2,46 @@ import { Case } from '../models/Case';
 
 /**
  * Generates a unique case number for cases created by arbitrator
- * Format: YYYYMMDD-{CLIENT_ID}-{4_RANDOM_DIGITS}
+ * Format: XXXXX-YY-MM
+ * XXXXX - 5 digit running number
+ * YY - Month of case opening (2 digits)
+ * MM - Year of opening (2 digits, last 2 digits of year)
  * 
  * @param creationDate - Date when the case is created
- * @param clientId - Client ID (idNumber for person or companyNumber for company)
+ * @param clientId - Client ID (not used in new format, kept for backward compatibility)
  * @returns Unique case number
  */
 export async function generateCaseNumber(
   creationDate: Date,
   clientId?: string
 ): Promise<string> {
-  // Format date as YYYYMMDD
-  const year = creationDate.getFullYear();
+  // Get month (2 digits)
   const month = String(creationDate.getMonth() + 1).padStart(2, '0');
-  const day = String(creationDate.getDate()).padStart(2, '0');
-  const dateStr = `${year}${month}${day}`;
+  
+  // Get year (last 2 digits)
+  const year = String(creationDate.getFullYear()).slice(-2);
 
-  // Clean client ID - remove non-digits and limit length
-  let cleanClientId = '';
-  if (clientId) {
-    cleanClientId = clientId.replace(/\D/g, ''); // Remove non-digits
-    // Limit to last 9 digits if longer
-    if (cleanClientId.length > 9) {
-      cleanClientId = cleanClientId.slice(-9);
+  // Find the highest running number for this month/year
+  const monthYearPattern = new RegExp(`^\\d{5}-${month}-${year}$`);
+  const casesInMonth = await Case.find({
+    caseNumber: { $regex: monthYearPattern }
+  }).sort({ caseNumber: -1 }).limit(1);
+
+  let runningNumber = 1;
+  if (casesInMonth.length > 0 && casesInMonth[0].caseNumber) {
+    // Extract the running number from the existing case
+    const match = casesInMonth[0].caseNumber.match(/^(\d{5})-/);
+    if (match) {
+      const lastNumber = parseInt(match[1], 10);
+      runningNumber = lastNumber + 1;
     }
   }
 
-  // If no client ID found, use a default
-  if (!cleanClientId) {
-    cleanClientId = '000000000'; // Default if no ID available
-  }
+  // Ensure running number is 5 digits
+  const runningNumberStr = String(runningNumber).padStart(5, '0');
 
-  // Generate 4 random digits
-  const randomDigits = Math.floor(1000 + Math.random() * 9000).toString();
-
-  // Combine: YYYYMMDD-CLIENTID-RANDOM
-  let caseNumber = `${dateStr}-${cleanClientId}-${randomDigits}`;
+  // Combine: XXXXX-YY-MM
+  let caseNumber = `${runningNumberStr}-${month}-${year}`;
 
   // Ensure uniqueness by checking if it exists
   let attempts = 0;
@@ -46,14 +50,15 @@ export async function generateCaseNumber(
     if (!existingCase) {
       return caseNumber;
     }
-    // If exists, generate new random digits
-    const newRandomDigits = Math.floor(1000 + Math.random() * 9000).toString();
-    caseNumber = `${dateStr}-${cleanClientId}-${newRandomDigits}`;
+    // If exists, increment running number
+    runningNumber++;
+    const runningNumberStr = String(runningNumber).padStart(5, '0');
+    caseNumber = `${runningNumberStr}-${month}-${year}`;
     attempts++;
   }
 
   // Fallback: add timestamp if still not unique
-  const timestamp = Date.now().toString().slice(-4);
-  return `${dateStr}-${cleanClientId}-${timestamp}`;
+  const timestamp = Date.now().toString().slice(-3);
+  return `${runningNumberStr}-${month}-${year}`;
 }
 

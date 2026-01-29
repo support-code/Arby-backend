@@ -39,11 +39,19 @@ router.get('/session/:sessionId', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && 
-        (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId &&
-        !caseDoc.lawyers.some(l => l.toString() === userId) &&
-        !caseDoc.parties.some(p => p.toString() === userId)) {
-      return res.status(403).json({ error: 'Access denied' });
+    // Admin can access everything
+    if (role === UserRole.ADMIN) {
+      // Allow access
+    } else {
+      // Check if user is arbitrator, lawyer, or party
+      const isArbitrator = (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) ||
+                          ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId);
+      const isLawyer = caseDoc.lawyers && caseDoc.lawyers.some((l: any) => l.toString() === userId);
+      const isParty = caseDoc.parties && caseDoc.parties.some((p: any) => p.toString() === userId);
+      
+      if (!isArbitrator && !isLawyer && !isParty) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
     }
 
     const protocols = await Protocol.find({ discussionSessionId: sessionId })
@@ -71,11 +79,19 @@ router.get('/case/:caseId', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && 
-        (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId &&
-        !caseDoc.lawyers.some(l => l.toString() === userId) &&
-        !caseDoc.parties.some(p => p.toString() === userId)) {
-      return res.status(403).json({ error: 'Access denied' });
+    // Admin can access everything
+    if (role === UserRole.ADMIN) {
+      // Allow access
+    } else {
+      // Check if user is arbitrator, lawyer, or party
+      const isArbitrator = (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) ||
+                          ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId);
+      const isLawyer = caseDoc.lawyers && caseDoc.lawyers.some((l: any) => l.toString() === userId);
+      const isParty = caseDoc.parties && caseDoc.parties.some((p: any) => p.toString() === userId);
+      
+      if (!isArbitrator && !isLawyer && !isParty) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
     }
 
     const protocols = await Protocol.find({ caseId })
@@ -110,11 +126,19 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const role = req.user!.role;
     
-    if (role !== UserRole.ADMIN && 
-        (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId &&
-        !caseDoc.lawyers.some(l => l.toString() === userId) &&
-        !caseDoc.parties.some(p => p.toString() === userId)) {
-      return res.status(403).json({ error: 'Access denied' });
+    // Admin can access everything
+    if (role === UserRole.ADMIN) {
+      // Allow access
+    } else {
+      // Check if user is arbitrator, lawyer, or party
+      const isArbitrator = (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) ||
+                          ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId);
+      const isLawyer = caseDoc.lawyers && caseDoc.lawyers.some((l: any) => l.toString() === userId);
+      const isParty = caseDoc.parties && caseDoc.parties.some((p: any) => p.toString() === userId);
+      
+      if (!isArbitrator && !isLawyer && !isParty) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
     }
 
     res.json(protocol);
@@ -166,8 +190,13 @@ router.post(
       }
 
       // Only arbitrator/admin can create protocols
-      if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
-        return res.status(403).json({ error: 'Only arbitrator can create protocols' });
+      if (role !== UserRole.ADMIN) {
+        const isArbitrator = (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) ||
+                            ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId);
+        
+        if (!isArbitrator) {
+          return res.status(403).json({ error: 'Only arbitrator can create protocols' });
+        }
       }
 
       // Fetch hearing for date validation
@@ -275,8 +304,17 @@ router.post(
       const userId = req.user!.userId;
       const role = req.user!.role;
       
-      if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
-        return res.status(403).json({ error: 'Only arbitrator can save protocols' });
+      // Check if user is admin
+      if (role === UserRole.ADMIN) {
+        // Admin can save protocols
+      } else {
+        // Check if user is arbitrator for this case
+        const isArbitrator = (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) ||
+                            ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId);
+        
+        if (!isArbitrator) {
+          return res.status(403).json({ error: 'Only arbitrator can save protocols' });
+        }
       }
 
       // Fetch hearing for date validation
