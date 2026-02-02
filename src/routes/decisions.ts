@@ -37,6 +37,57 @@ router.get('/case/:caseId', canAccessCase, async (req: AuthRequest, res: Respons
   }
 });
 
+// Get all decisions for a discussion session
+router.get('/session/:sessionId', async (req: AuthRequest, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    
+    // Verify session exists and user has access
+    const session = await DiscussionSession.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Discussion session not found' });
+    }
+    
+    // Check access to case
+    const caseDoc = await Case.findById(session.caseId);
+    if (!caseDoc) {
+      return res.status(404).json({ error: 'Case not found' });
+    }
+    
+    const userId = req.user!.userId;
+    const role = req.user!.role;
+    
+    // Check if user has access to case
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    
+    if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator &&
+        !caseDoc.lawyers.some((l: any) => l.toString() === userId) &&
+        !caseDoc.parties.some((p: any) => p.toString() === userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Get decisions for this session only
+    const decisions = await Decision.find({ 
+      discussionSessionId: sessionId, 
+      isDeleted: { $ne: true } 
+    })
+      .populate('createdBy', 'name email')
+      .populate('documentId', 'originalName')
+      .populate('requestId', 'title type')
+      .populate('discussionSessionId', 'title')
+      .populate('revokingDecisionId', 'title status')
+      .populate('revokedByDecisionId', 'title status')
+      .sort({ createdAt: -1 });
+    
+    res.json(decisions);
+  } catch (error) {
+    console.error('Fetch session decisions error:', error);
+    res.status(500).json({ error: 'Failed to fetch session decisions' });
+  }
+});
+
 // Get single decision
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
@@ -134,8 +185,8 @@ router.post(
       //   return res.status(400).json({ error: 'discussionSessionId is required for discussion decisions' });
       // }
 
-      // If final decision, ensure closesDiscussion is true
-      const shouldCloseDiscussion = type === DecisionType.FINAL_DECISION ? true : (closesDiscussion || false);
+      // Final decision always closes the case
+      const shouldCloseCase = type === DecisionType.FINAL_DECISION ? true : (closesCase || false);
 
       const decision = await Decision.create({
         caseId,
@@ -145,22 +196,15 @@ router.post(
         content,
         documentId,
         requestId: type === DecisionType.NOTE_DECISION ? requestId : undefined,
-        discussionSessionId: (type === DecisionType.DISCUSSION_DECISION || type === DecisionType.FINAL_DECISION) 
+        discussionSessionId: type === DecisionType.DISCUSSION_DECISION 
           ? discussionSessionId 
           : undefined,
-        closesDiscussion: shouldCloseDiscussion,
-        closesCase: closesCase || false,
+        closesDiscussion: closesDiscussion || false,
+        closesCase: shouldCloseCase,
         status: status || DecisionStatus.DRAFT,
         createdBy,
         publishedAt: status === DecisionStatus.SIGNED ? new Date() : undefined
       });
-
-      // If final decision closes discussion, update discussion session status
-      if (type === DecisionType.FINAL_DECISION && discussionSessionId) {
-        await DiscussionSession.findByIdAndUpdate(discussionSessionId, {
-          status: 'completed'
-        });
-      }
 
       // If decision closes case, update case status
       if (closesCase) {

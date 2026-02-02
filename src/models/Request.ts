@@ -57,7 +57,19 @@ const RequestSchema = new Schema<IRequestDocument>(
     attachments: [{
       type: Schema.Types.ObjectId,
       ref: 'Document'
-    }]
+    }],
+    isConfidential: {
+      type: Boolean,
+      default: false
+    },
+    visibleTo: [{
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    }],
+    hideAttachments: {
+      type: Boolean,
+      default: false
+    }
   },
   {
     timestamps: true

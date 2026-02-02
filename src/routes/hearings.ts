@@ -153,8 +153,17 @@ router.patch(
       const userId = req.user!.userId;
       const role = req.user!.role;
       
-      if (role !== UserRole.ADMIN && (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) || ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId) !== userId) {
-        return res.status(403).json({ error: 'Only arbitrator can update hearings' });
+      // Check if user is admin
+      if (role === UserRole.ADMIN) {
+        // Admin can update hearings
+      } else {
+        // Check if user is arbitrator for this case
+        const isArbitrator = (caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId)) ||
+                            ((caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId);
+        
+        if (!isArbitrator) {
+          return res.status(403).json({ error: 'Only arbitrator can update hearings' });
+        }
       }
 
       const updates: any = {};

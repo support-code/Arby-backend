@@ -53,10 +53,45 @@ const upload = multer({
 router.get('/case/:caseId', canAccessCase, async (req: AuthRequest, res: Response) => {
   try {
     const { caseId } = req.params;
-    const requests = await Request.find({ caseId })
+    const userId = req.user!.userId;
+    const role = req.user!.role;
+    
+    // Get case to check arbitrator status
+    const caseDoc = await Case.findById(caseId);
+    if (!caseDoc) {
+      return res.status(404).json({ error: 'Case not found' });
+    }
+    
+    const isArbitrator = caseDoc.arbitratorIds && Array.isArray(caseDoc.arbitratorIds) && 
+      caseDoc.arbitratorIds.some((arbId: any) => arbId.toString() === userId);
+    const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
+    
+    const allRequests = await Request.find({ caseId })
       .populate('submittedBy', 'name email')
       .populate('respondedBy', 'name email')
+      .populate('visibleTo', 'name email')
       .sort({ createdAt: -1 });
+    
+    // Filter confidential requests based on permissions
+    const requests = allRequests.filter((request: any) => {
+      // Admin and arbitrator can see all requests
+      if (role === UserRole.ADMIN || isArbitrator || isLegacyArbitrator) return true;
+      
+      // If request is not confidential, everyone with case access can see it
+      if (!request.isConfidential) return true;
+      
+      // If confidential, check if user is in visibleTo list or is the submitter
+      if (request.submittedBy && request.submittedBy._id && request.submittedBy._id.toString() === userId) return true;
+      
+      if (request.visibleTo && Array.isArray(request.visibleTo)) {
+        return request.visibleTo.some((user: any) => {
+          const userIdStr = typeof user === 'object' && user._id ? user._id.toString() : user.toString();
+          return userIdStr === userId;
+        });
+      }
+      
+      return false;
+    });
     
     res.json(requests);
   } catch (error) {
@@ -94,11 +129,27 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     // Legacy support
     const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
     
-    if (role !== UserRole.ADMIN && 
-        !isArbitrator && !isLegacyArbitrator &&
-        !caseDoc.lawyers.some(l => l.toString() === userId) &&
-        !caseDoc.parties.some(p => p.toString() === userId)) {
+    // Check basic case access
+    const hasCaseAccess = role === UserRole.ADMIN || 
+      isArbitrator || isLegacyArbitrator ||
+      caseDoc.lawyers.some(l => l.toString() === userId) ||
+      caseDoc.parties.some(p => p.toString() === userId);
+    
+    if (!hasCaseAccess) {
       return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // If request is confidential, check additional permissions
+    if (request.isConfidential) {
+      const canAccessConfidential = role === UserRole.ADMIN || 
+        isArbitrator || isLegacyArbitrator ||
+        (request.submittedBy && request.submittedBy.toString() === userId) ||
+        (request.visibleTo && Array.isArray(request.visibleTo) && 
+         request.visibleTo.some((uid: any) => uid.toString() === userId));
+      
+      if (!canAccessConfidential) {
+        return res.status(403).json({ error: 'Access denied to confidential request' });
+      }
     }
 
     res.json(request);
@@ -132,13 +183,37 @@ router.get('/:id/attachments', async (req: AuthRequest, res: Response) => {
     // Legacy support
     const isLegacyArbitrator = (caseDoc as any).arbitratorId && (caseDoc as any).arbitratorId.toString() === userId;
     
-    if (role !== UserRole.ADMIN && 
-        !isArbitrator && !isLegacyArbitrator &&
-        !caseDoc.lawyers.some(l => l.toString() === userId) &&
-        !caseDoc.parties.some(p => p.toString() === userId)) {
+    // Check basic case access
+    const hasCaseAccess = role === UserRole.ADMIN || 
+      isArbitrator || isLegacyArbitrator ||
+      caseDoc.lawyers.some(l => l.toString() === userId) ||
+      caseDoc.parties.some(p => p.toString() === userId);
+    
+    if (!hasCaseAccess) {
       return res.status(403).json({ error: 'Access denied' });
     }
+    
+    // If request is confidential, check additional permissions
+    if (request.isConfidential) {
+      const canAccessConfidential = role === UserRole.ADMIN || 
+        isArbitrator || isLegacyArbitrator ||
+        (request.submittedBy && request.submittedBy.toString() === userId) ||
+        (request.visibleTo && Array.isArray(request.visibleTo) && 
+         request.visibleTo.some((uid: any) => uid.toString() === userId));
+      
+      if (!canAccessConfidential) {
+        return res.status(403).json({ error: 'Access denied to confidential request' });
+      }
+    }
 
+    // Check if attachments should be hidden
+    if (request.hideAttachments) {
+      // Only admin and arbitrator can see hidden attachments
+      if (role !== UserRole.ADMIN && !isArbitrator && !isLegacyArbitrator) {
+        return res.json([]); // Return empty array for non-authorized users
+      }
+    }
+    
     if (!request.attachments || request.attachments.length === 0) {
       return res.json([]);
     }
@@ -180,7 +255,7 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { caseId, type, title, content } = req.body;
+      const { caseId, type, title, content, isConfidential, visibleTo, hideAttachments } = req.body;
       const submittedBy = req.user!.userId;
 
       // Verify case exists and user has access
@@ -223,7 +298,10 @@ router.post(
         content,
         status: RequestStatus.PENDING,
         submittedBy,
-        attachments: attachmentIds.length > 0 ? attachmentIds : undefined
+        attachments: attachmentIds.length > 0 ? attachmentIds : undefined,
+        isConfidential: isConfidential === true || isConfidential === 'true',
+        visibleTo: visibleTo && Array.isArray(visibleTo) ? visibleTo : undefined,
+        hideAttachments: hideAttachments === true || hideAttachments === 'true'
       });
 
       await logAction(

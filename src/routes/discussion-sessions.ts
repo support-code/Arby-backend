@@ -6,7 +6,7 @@ import { Case } from '../models/Case';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { canAccessCase } from '../middleware/permissions';
 import { logAction } from '../utils/audit';
-import { UserRole } from '../types';
+import { UserRole, AttendeeType } from '../types';
 import {
   canWriteProtocol,
   canTransitionState,
@@ -337,7 +337,7 @@ router.patch(
 
 // Add attendee to session
 router.post('/:id/attendees', [
-  body('type').isIn(['witness', 'expert', 'court_clerk', 'secretary', 'other']),
+  body('type').isIn(Object.values(AttendeeType)),
   body('name').trim().notEmpty(),
   body('userId').optional().isMongoId()
 ], async (req: AuthRequest, res: Response) => {

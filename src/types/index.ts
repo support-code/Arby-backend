@@ -265,6 +265,9 @@ export interface IRequest {
   responseDate?: Date;
   response?: string;
   attachments?: string[]; // Document IDs for attached PDFs
+  isConfidential?: boolean; // האם הבקשה חסויה
+  visibleTo?: string[]; // רשימת משתמשים שיכולים לראות את הבקשה (אם חסויה)
+  hideAttachments?: boolean; // האם להסתיר את המסמכים המצורפים
   createdAt: Date;
   updatedAt: Date;
 }
@@ -345,6 +348,8 @@ export enum AttendeeType {
   EXPERT = 'expert', // מומחה
   COURT_CLERK = 'court_clerk', // יכל
   SECRETARY = 'secretary', // מנני
+  REPRESENTATIVE = 'representative', // ב"כ (בא כוח)
+  DEFENDANT = 'defendant', // נתבע
   OTHER = 'other' // אחר
 }
 

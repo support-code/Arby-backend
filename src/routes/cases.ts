@@ -530,7 +530,7 @@ router.get('/:caseId', canAccessCase, async (req: AuthRequest, res: Response) =>
       })
       .populate({
         path: 'caseLawyers',
-        select: 'firstName lastName idNumber address phone email profession status partyId'
+        select: 'firstName lastName idNumber address phone email profession status partyId userId'
       })
       .populate('lawyers', 'name email')
       .populate('parties', 'name email');
