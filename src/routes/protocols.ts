@@ -276,7 +276,8 @@ router.post(
 router.post(
   '/session/:sessionId/save',
   [
-    body('content').notEmpty()
+    body('content').optional().notEmpty(),
+    body('pages').optional().isArray()
   ],
   async (req: AuthRequest, res: Response) => {
     try {
@@ -286,8 +287,13 @@ router.post(
       }
 
       const { sessionId } = req.params;
-      const { content } = req.body;
+      const { content, pages } = req.body;
       const createdBy = req.user!.userId;
+      
+      // Validate that either content or pages is provided
+      if (!content && (!pages || pages.length === 0)) {
+        return res.status(400).json({ error: 'Either content or pages must be provided' });
+      }
 
       // Verify session exists
       const session = await DiscussionSession.findById(sessionId);
@@ -331,17 +337,54 @@ router.post(
         });
       }
 
-      // Legal Principle #3: Validate protocol content doesn't contain decision text
-      const contentGuard = validateProtocolContent(content);
-      if (!contentGuard.allowed) {
-        return res.status(400).json({ 
-          error: contentGuard.error,
-          message: contentGuard.message 
-        });
-      }
+      // Process pages if provided, otherwise use content
+      let finalContent = '';
+      let finalPages: Array<{ pageNumber: number; content: string }> | undefined = undefined;
+      
+      if (pages && Array.isArray(pages)) {
+        // Filter out pages with less than 10 characters
+        const validPages = pages.filter((page: any) => 
+          page.content && typeof page.content === 'string' && page.content.trim().length >= 10
+        );
+        
+        if (validPages.length === 0) {
+          return res.status(400).json({ 
+            error: 'At least one page with minimum 10 characters is required' 
+          });
+        }
+        
+        // Validate each page content
+        for (const page of validPages) {
+          const contentGuard = validateProtocolContent(page.content);
+          if (!contentGuard.allowed) {
+            return res.status(400).json({ 
+              error: contentGuard.error,
+              message: `Page ${page.pageNumber}: ${contentGuard.message}` 
+            });
+          }
+        }
+        
+        // Inject participants header into first page only
+        if (validPages.length > 0) {
+          validPages[0].content = injectParticipantsHeader(validPages[0].content, session.attendees || []);
+        }
+        
+        finalPages = validPages;
+        // Generate content from pages for backward compatibility
+        finalContent = validPages.map(p => p.content).join('\n\n');
+      } else if (content) {
+        // Legal Principle #3: Validate protocol content doesn't contain decision text
+        const contentGuard = validateProtocolContent(content);
+        if (!contentGuard.allowed) {
+          return res.status(400).json({ 
+            error: contentGuard.error,
+            message: contentGuard.message 
+          });
+        }
 
-      // Legal Principle #4: Inject locked participants header
-      const contentWithHeader = injectParticipantsHeader(content, session.attendees || []);
+        // Legal Principle #4: Inject locked participants header
+        finalContent = injectParticipantsHeader(content, session.attendees || []);
+      }
 
       // Legal Principle #7: Versioning is append-only - always create new version
       // Legal Requirement #10: Only one current version exists at any time
@@ -357,17 +400,29 @@ router.post(
         );
       }
 
-      const protocol = await Protocol.create({
+      const protocolData: any = {
         discussionSessionId: sessionId,
         caseId: session.caseId,
-        content: contentWithHeader,
         version: nextVersion,
         isCurrentVersion: true, // New version becomes current
         createdBy
-      });
+      };
+      
+      if (finalPages) {
+        protocolData.pages = finalPages;
+        protocolData.content = finalContent; // Keep for backward compatibility
+      } else {
+        protocolData.content = finalContent;
+      }
+      
+      const protocol = await Protocol.create(protocolData);
 
-      // Update session protocol (with header)
-      session.protocol = contentWithHeader;
+      // Update session protocol (with header or first page)
+      if (finalPages && finalPages.length > 0) {
+        session.protocol = finalPages[0].content;
+      } else {
+        session.protocol = finalContent;
+      }
       await session.save();
 
       await logAction(

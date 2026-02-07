@@ -24,8 +24,18 @@ const ProtocolSchema = new Schema<IProtocolDocument>(
     },
     content: {
       type: String,
-      required: true // HTML content
+      required: false // HTML content - kept for backward compatibility, optional if pages are provided
     },
+    pages: [{
+      pageNumber: {
+        type: Number,
+        required: true
+      },
+      content: {
+        type: String,
+        required: true
+      }
+    }], // Array of pages with global page numbers
     version: {
       type: Number,
       required: true,
@@ -72,8 +82,8 @@ ProtocolSchema.index({ isSigned: 1, signedAt: -1 });
 ProtocolSchema.pre('save', function(next) {
   const doc = this as unknown as IProtocolDocument;
   // Legal Principle #7: Versioning is append-only, original versions remain audit-visible
-  if (!doc.isNew && doc.isModified('content')) {
-    // Content cannot be modified after creation - only new versions allowed
+  if (!doc.isNew && (doc.isModified('content') || doc.isModified('pages'))) {
+    // Content and pages cannot be modified after creation - only new versions allowed
     return next(new Error('פרוטוקול אינו ניתן לעריכה לאחר יצירה. יש ליצור גרסה חדשה.'));
   }
 

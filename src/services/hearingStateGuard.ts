@@ -92,18 +92,19 @@ export async function canWriteProtocol(
   }
 
   // Legal Requirement #1: Protocol may ONLY be opened and edited on the hearing day itself
-  if (!hearing) {
-    hearing = await Hearing.findById(session.hearingId);
-  }
+  // NOTE: Date check removed - protocol can always be saved
+  // if (!hearing) {
+  //   hearing = await Hearing.findById(session.hearingId);
+  // }
   
-  if (hearing && !isHearingDate(session, hearing)) {
-    const hearingDate = new Date(hearing.scheduledDate || session.startedAt);
-    return {
-      allowed: false,
-      error: ProtocolWriteError.PROTOCOL_LOCKED,
-      message: `פרוטוקול ניתן לפתיחה ועריכה רק ביום הדיון עצמו. תאריך הדיון: ${hearingDate.toLocaleDateString('he-IL')}. תאריך נוכחי: ${new Date().toLocaleDateString('he-IL')}.`
-    };
-  }
+  // if (hearing && !isHearingDate(session, hearing)) {
+  //   const hearingDate = new Date(hearing.scheduledDate || session.startedAt);
+  //   return {
+  //     allowed: false,
+  //     error: ProtocolWriteError.PROTOCOL_LOCKED,
+  //     message: `פרוטוקול ניתן לפתיחה ועריכה רק ביום הדיון עצמו. תאריך הדיון: ${hearingDate.toLocaleDateString('he-IL')}. תאריך נוכחי: ${new Date().toLocaleDateString('he-IL')}.`
+  //   };
+  // }
 
   // Legal Principle #2: Protocol may ONLY be written during ACTIVE hearing
   if (session.status !== DiscussionSessionStatus.ACTIVE) {

@@ -382,7 +382,8 @@ export interface IProtocol {
   _id?: string;
   discussionSessionId: string;
   caseId: string;
-  content: string; // HTML content (append-only, immutable after creation)
+  content: string; // HTML content (append-only, immutable after creation) - kept for backward compatibility
+  pages?: Array<{ pageNumber: number; content: string }>; // Array of pages with global page numbers
   version: number; // Incremental version number (never decreases)
   isSigned: boolean; // Whether this version was signed (immutable)
   signedAt?: Date; // Timestamp when signed
